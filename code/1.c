@@ -1,3 +1,4 @@
+#include <math.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -60,6 +61,7 @@ typedef struct
 } ImageBatch;
 
 #define FILE_HEADER_STRING "__info2_image_file_format__"
+#define FILE_HEADER_MODEL "__info2_neural_network_file_format__"
 #define BUFFER_SIZE 100
 
 ImageBatch *get_images_batch()
@@ -101,7 +103,7 @@ ImageBatch *get_images_batch()
 
         //read label
         uint8_t label;
-        numbytes = fread(&label, sizeof(uint8_t), 1, fp);
+        fread(&label, sizeof(uint8_t), 1, fp);
         batch->labels[i] = label;
 
         batch->count += 1;
@@ -110,6 +112,133 @@ ImageBatch *get_images_batch()
     return batch;
 }
 
+void softmax(float *x, int dim)
+{
+    //find max val (log sum exp trick)
+    float max_val = 0, sum = 0;
+    for (int i = 0; i < dim; i++)
+    {
+        max_val = max_val < x[i] ? x[i] : max_val;
+    }
+    //calculate denominator
+    for (int i = 0; i < dim; i++)
+    {
+        x[i] = expf(x[i] - max_val);
+        sum = sum + x[i];
+    }
+    //softmax
+    for (int i = 0; i < dim; i++)
+    {
+        x[i] = x[i] / sum;
+        printf("x[%d] = %f\n", i, x[i]);
+    }
+}
+
+void relu(float *x, int dim)
+{
+    for (int i = 0; i < dim; i++)
+    {
+        x[i] = (x[i] < 0) ? 0 : x[i];
+        printf("x[%d] = %f\n", i, x[i]);
+    }
+}
+
+/*y(d, )  = w(d,n) * x(n, ) */
+void matmul(float *y, float *x, float *w, int d, int n)
+{
+    for (int i = 0; i < d; i++)
+    {
+        float val = 0.0f;
+        for (int j = 0; j < n; j++)
+        {
+            val += w[i * n + j] * x[j];
+        }
+        y[i] = val;
+        printf("%d: %f \n", i, y[i]);
+    }
+}
+
+typedef struct {
+    int dim; // dimension
+    int n_layers; // number of layers
+} Config;
+
+typedef struct
+{
+    int n1;
+    int d1;
+    float *w1;
+    float *b1;
+    int n2;
+    int d2;
+    float *w2;
+    float *b2;
+    int n3;
+    int d3;
+    float *w3;
+    float *b3;
+} Weights;
+
+typedef struct {
+    // Input buffer (flattened MNIST image 28x28 = 784)
+    float *x;       // (784)
+    // Hidden activation buffers
+    float *h1;      // (200)  after Dense 1
+    float *h2;      // (100)  after Dense 2
+    // Output logits
+    float *logits;  // (10)
+} RunState;
+
+void read_checkpoint(Weights *weights)
+{
+    FILE *fp = fopen("../code/data/mnist_model.info2", "rb");
+    char buf[BUFFER_SIZE];
+    fread(buf, sizeof(char), strlen(FILE_HEADER_MODEL), fp);
+    printf("%s\n", buf);
+    if (strcmp(FILE_HEADER_MODEL, buf) != 0)
+    {
+        printf("File has invalid header!\n");
+    }
+    //read dimensions
+    int input_dim = 0;
+    fread(&input_dim, sizeof(int), 1, fp);
+    int output_dim = 0;
+    fread(&output_dim, sizeof(int), 1, fp);
+
+
+    int rows = output_dim;
+    int cols = input_dim;
+    weights->n1 = rows;
+    weights->d1 = cols;
+    weights->w1 = (float *)alloc_arena(rows * cols * sizeof(float));
+    fread(weights->w1, sizeof(float), rows * cols, fp);
+    weights->b1 = (float *)alloc_arena(rows * sizeof(float));
+    fread(weights->b1, sizeof(float), rows, fp);
+
+    input_dim = output_dim;
+    fread(&output_dim, sizeof(int), 1, fp);
+    rows = output_dim;
+    cols = input_dim;
+    weights->n2 = rows;
+    weights->d2 = cols;
+    weights->w2 = (float *)alloc_arena(rows * cols * sizeof(float));
+    fread(weights->w2, sizeof(float), rows * cols, fp);
+    weights->b2 = (float *)alloc_arena(rows * sizeof(float));
+    fread(weights->b2, sizeof(float), rows, fp);
+
+    input_dim = output_dim;
+    fread(&output_dim, sizeof(int), 1, fp);
+    rows = output_dim;
+    cols = input_dim;
+    weights->n3 = rows;
+    weights->d3 = cols;
+    weights->w3 = (float *)alloc_arena(rows * cols * sizeof(float));
+    fread(weights->w3, sizeof(float), rows * cols, fp);
+    weights->b3 = (float *)alloc_arena(rows * sizeof(float));
+    fread(weights->b3, sizeof(float), rows, fp);
+}
+
+void test();
 
 int main()
 {
@@ -117,5 +246,56 @@ int main()
     //read test images with labels
     ImageBatch *batch = get_images_batch();
     //read model
+    Weights *weights = (Weights *)alloc_arena(sizeof(Weights));
+    read_checkpoint(weights);
 
+    RunState st;
+
+    Image input_img = batch->images[0];
+    printf("%d\n", input_img.width);
+    st.x = (float *) alloc_arena(input_img.width * input_img.height * sizeof(float));
+    for (int i = 0; i < input_img.height; i++){
+        for (int j = 0; j < input_img.width; j++)
+        {
+            st.x[i*input_img.width + j] = input_img.pixel_buffer[i*input_img.width + j];
+        }
+    }
+
+    st.h1 = (float *) alloc_arena(weights->d2 * sizeof(float));
+    matmul(st.h1, st.x, weights->w1, weights->n1, weights->d1);
+}
+
+void test()
+{
+    float *test = (float *)alloc_arena(sizeof(float));
+    float test_val[] = {2, 1.0, 0.5};
+    //memcpy(test, test_val, 3 * sizeof(float));
+    //softmax(test, 3);
+
+    //float test_val[] = {2, 1.0, -0.5};
+    //memcpy(test, test_val, 3 * sizeof(float));
+    //relu(test, 3);
+    int n = 4;
+    int d = 3;
+    float *test_a = (float *)alloc_arena(d * n * sizeof(float));
+    float *test_b = (float *)alloc_arena(n * sizeof(float));
+    float *test_c = (float *)alloc_arena(d * sizeof(float));
+
+    float w[12] = {
+        1,  2,  3,  4,
+        5,  6,  7,  8,
+        9, 10, 11, 12
+    };
+    memcpy(test_a, w, d *n * sizeof(float));
+    float x[4] = {1, 2, 3, 4};
+    memcpy(test_b, x, n * sizeof(float));
+    matmul(test_c,test_b,test_a, d, n);
+
+    // print results
+    printf("y = [");
+    for (int i = 0; i < d; i++)
+    {
+        printf(" %f ", test_c[i]);
+    }
+    printf("]\n");
 }
