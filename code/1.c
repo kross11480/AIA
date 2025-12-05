@@ -164,6 +164,21 @@ void vecadd(float *y, float *x, int d)
     }
 }
 
+int argmax(float *x, int d)
+{
+    int max_index = 0;
+    float argmaxval = 0.0f;
+    for (int i = 0; i < d; i++)
+    {
+        if (argmaxval < x[i])
+        {
+            argmaxval = x[i];
+            max_index = i;
+        }
+    }
+    return max_index;
+}
+
 typedef struct {
     int dim; // dimension
     int n_layers; // number of layers
@@ -264,7 +279,7 @@ int main()
 
     RunState st;
 
-    Image input_img = batch->images[3];
+    Image input_img = batch->images[5];
     printf("%d\n", input_img.width);
     st.x = (float *) alloc_arena(input_img.width * input_img.height * sizeof(float));
     u8_to_float(input_img.pixel_buffer, (float *)st.x, input_img.width * input_img.height);
@@ -284,12 +299,7 @@ int main()
     vecadd(st.logits, weights->b3, weights->n3);
     softmax(st.logits, weights->n3);
 
-    for (int i = 0; i < weights->n3; i++)
-    {
-        printf("%f \n", st.logits[i]);
-    }
-
-
+    printf("Predicted Class: %d \n\n", argmax(st.logits, weights->n3));
 }
 
 void test()
