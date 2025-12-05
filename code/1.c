@@ -105,7 +105,7 @@ ImageBatch *get_images_batch()
         uint8_t label;
         fread(&label, sizeof(uint8_t), 1, fp);
         batch->labels[i] = label;
-
+        printf("label[%d] = %d\n", i, batch->labels[i]);
         batch->count += 1;
     }
     fclose(fp);
@@ -130,7 +130,6 @@ void softmax(float *x, int dim)
     for (int i = 0; i < dim; i++)
     {
         x[i] = x[i] / sum;
-        printf("x[%d] = %f\n", i, x[i]);
     }
 }
 
@@ -139,7 +138,6 @@ void relu(float *x, int dim)
     for (int i = 0; i < dim; i++)
     {
         x[i] = (x[i] < 0) ? 0 : x[i];
-        printf("x[%d] = %f\n", i, x[i]);
     }
 }
 
@@ -154,7 +152,15 @@ void matmul(float *y, float *x, float *w, int d, int n)
             val += w[i * n + j] * x[j];
         }
         y[i] = val;
-        printf("%d: %f \n", i, y[i]);
+    }
+}
+
+/*y(d, )  = y(d,) + x(d, ) */
+void vecadd(float *y, float *x, int d)
+{
+    for (int i = 0; i < d; i++)
+    {
+        y[i] += x[i];
     }
 }
 
@@ -258,24 +264,32 @@ int main()
 
     RunState st;
 
-    Image input_img = batch->images[0];
+    Image input_img = batch->images[3];
     printf("%d\n", input_img.width);
     st.x = (float *) alloc_arena(input_img.width * input_img.height * sizeof(float));
-    // for (int i = 0; i < input_img.height; i++){
-    //     for (int j = 0; j < input_img.width; j++)
-    //     {
-    //         st.x[i*input_img.width + j] = input_img.pixel_buffer[i*input_img.width + j];
-    //     }
-    // }
     u8_to_float(input_img.pixel_buffer, (float *)st.x, input_img.width * input_img.height);
-    // for (int i = 0; i < input_img.height; i++){
-    //     for (int j = 0; j < input_img.width; j++)
-    //     {
-    //         printf("%f, %d \n", st.x[i*input_img.width + j], input_img.pixel_buffer[i*input_img.width + j]);
-    //     }
-    // }
+
     st.h1 = (float *) alloc_arena(weights->d2 * sizeof(float));
     matmul(st.h1, st.x, weights->w1, weights->n1, weights->d1);
+    vecadd(st.h1, weights->b1, weights->d2);
+    relu(st.h1, weights->d2);
+
+    st.h2 = (float *) alloc_arena(weights->d3 * sizeof(float));
+    matmul(st.h2, st.h1, weights->w2, weights->n2, weights->d2);
+    vecadd(st.h2, weights->b2, weights->d3);
+    relu(st.h2, weights->d3);
+
+    st.logits = (float *) alloc_arena(weights->n3 * sizeof(float));
+    matmul(st.logits, st.h2, weights->w3, weights->n3, weights->d3);
+    vecadd(st.logits, weights->b3, weights->n3);
+    softmax(st.logits, weights->n3);
+
+    for (int i = 0; i < weights->n3; i++)
+    {
+        printf("%f \n", st.logits[i]);
+    }
+
+
 }
 
 void test()
