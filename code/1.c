@@ -240,6 +240,13 @@ void read_checkpoint(Weights *weights)
 
 void test();
 
+void u8_to_float(uint8_t *pixel_buffer, float *x, int count)
+{
+    for (int i = 0; i < count; i++){
+        x[i] = (float) pixel_buffer[i];
+    }
+}
+
 int main()
 {
     init_arena();
@@ -254,13 +261,19 @@ int main()
     Image input_img = batch->images[0];
     printf("%d\n", input_img.width);
     st.x = (float *) alloc_arena(input_img.width * input_img.height * sizeof(float));
-    for (int i = 0; i < input_img.height; i++){
-        for (int j = 0; j < input_img.width; j++)
-        {
-            st.x[i*input_img.width + j] = input_img.pixel_buffer[i*input_img.width + j];
-        }
-    }
-
+    // for (int i = 0; i < input_img.height; i++){
+    //     for (int j = 0; j < input_img.width; j++)
+    //     {
+    //         st.x[i*input_img.width + j] = input_img.pixel_buffer[i*input_img.width + j];
+    //     }
+    // }
+    u8_to_float(input_img.pixel_buffer, (float *)st.x, input_img.width * input_img.height);
+    // for (int i = 0; i < input_img.height; i++){
+    //     for (int j = 0; j < input_img.width; j++)
+    //     {
+    //         printf("%f, %d \n", st.x[i*input_img.width + j], input_img.pixel_buffer[i*input_img.width + j]);
+    //     }
+    // }
     st.h1 = (float *) alloc_arena(weights->d2 * sizeof(float));
     matmul(st.h1, st.x, weights->w1, weights->n1, weights->d1);
 }
