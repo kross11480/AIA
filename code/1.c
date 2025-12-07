@@ -268,22 +268,11 @@ void u8_to_float(uint8_t *pixel_buffer, float *x, int count)
     }
 }
 
-int main()
+void predict(Image *input_img, Weights *weights)
 {
-    init_arena();
-    //read test images with labels
-    ImageBatch *batch = get_images_batch();
-    //read model
-    Weights *weights = (Weights *)alloc_arena(sizeof(Weights));
-    read_checkpoint(weights);
-
     RunState st;
-
-    Image input_img = batch->images[5];
-    printf("%d\n", input_img.width);
-    st.x = (float *) alloc_arena(input_img.width * input_img.height * sizeof(float));
-    u8_to_float(input_img.pixel_buffer, (float *)st.x, input_img.width * input_img.height);
-
+    st.x = (float *) alloc_arena(input_img->width * input_img->height * sizeof(float));
+    u8_to_float(input_img->pixel_buffer, (float *)st.x, input_img->width * input_img->height);
     st.h1 = (float *) alloc_arena(weights->d2 * sizeof(float));
     matmul(st.h1, st.x, weights->w1, weights->n1, weights->d1);
     vecadd(st.h1, weights->b1, weights->d2);
@@ -300,6 +289,22 @@ int main()
     softmax(st.logits, weights->n3);
 
     printf("Predicted Class: %d \n\n", argmax(st.logits, weights->n3));
+}
+
+int main()
+{
+    init_arena();
+    //read test images with labels
+    ImageBatch *batch = get_images_batch();
+    //read model
+    Weights *weights = (Weights *)alloc_arena(sizeof(Weights));
+    read_checkpoint(weights);
+    for (int i=0; i < 10; i++)
+    {
+        Image input_img = batch->images[i];
+        predict(&input_img, weights);
+    }
+
 }
 
 void test()
