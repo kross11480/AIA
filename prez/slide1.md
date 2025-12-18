@@ -14,8 +14,8 @@ backgroundColor: #fff
 
 * ML = Data + Model + Infrastructure
 
-
-
+<!-- _class: small -->
+> Learn how AI actually runs—efficiently, at scale, and within real-world constraints—by aligning algorithms, hardware, and data.
 ---
 # Organization!
 
@@ -29,7 +29,7 @@ backgroundColor: #fff
 ---
 # Historical Evolution: 
 
-* Symbolic Systems to Deep Learning. ML is part of AI
+**Symbolic Systems to Deep Learning. ML is part of AI**
 
 ---
 # Primer NN: Perceptron, XOR Crisis, Training, and Inference
