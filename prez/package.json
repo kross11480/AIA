@@ -1,6 +1,6 @@
 {
   "scripts": {
-    "marp": "marp slide1.md -w --html --allow-local-files "
+    "marp": "marp lectures/1_Foundation/slide1.md -w --html --allow-local-files "
   },
   "devDependencies": {
     "@marp-team/marp-cli": "^3.4.0"
