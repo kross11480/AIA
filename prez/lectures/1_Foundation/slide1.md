@@ -21,14 +21,13 @@ style: |
 # What is the Lecture about?
 
 <!-- SVG hier -->
-![center](assets/diagrams/overview.svg)
+![center](assets/diagrams/6overview.svg)
 <!-- _class: small -->
 
 > Learn how AI actually runs—efficiently, at scale, and within real-world constraints—by aligning machine learning models, **hardware**, and data.
 
 ---
 # Why AI on Accelerators?
-
 - Real-time perception (ADAS, autonomous driving)
 - High data rates (cameras, radar, LiDAR)
 - CPUs are too slow / power-hungry
@@ -148,6 +147,7 @@ AI foundations        ML emerges & grows            Deep Learning surge
 <!-- SVG hier -->
 ![center](assets/diagrams/0ml.svg)
 <!-- _class: small -->
+
 - **Training**: Learn a hypothesis that maps inputs to outputs
 - Generalize to unseen data
 - **Goal**: enable **inference**

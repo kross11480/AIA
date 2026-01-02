@@ -1,17 +1,15 @@
 #!/bin/bash
+# Usage: ./export_drawio.sh yourfile.drawio
+mkdir -p diagrams
 
-SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-INPUT_FILE="$SCRIPT_DIR/Foundation.drawio"
-OUTPUT_DIR="$SCRIPT_DIR/diagrams"
+FILE=$1
+# Extract page names from the XML
+# This looks for the 'name="..."' attribute in the <diagram> tags
+NAMES=$(grep -oE 'name="[^"]+"' "$FILE" | cut -d'"' -f2)
 
-# Create img directory if it doesn't exist
-mkdir -p "$OUTPUT_DIR"
-
-MAPFILE=($(grep -o 'name="[^"]*"' "$INPUT_FILE"| cut -d'"' -f2))
-
-for i in "${!MAPFILE[@]}"; do
-  CLEAN_NAME=$(echo "${MAPFILE[$i]}" | tr '[:upper:]' '[:lower:]' | tr ' ' '-' | sed 's/[^a-z0-9-]//g')
-
-  # Export directly into the img folder
-  drawio -x -f svg -p $i --crop --transparent -o "$OUTPUT_DIR/$CLEAN_NAME.svg" "$INPUT_FILE"
+INDEX=1
+for NAME in $NAMES; do
+  echo "Exporting page $INDEX: $NAME.svg"
+  drawio -x -f svg -p $INDEX -o "diagrams/${NAME}.svg" "$FILE"
+  INDEX=$((INDEX + 1))
 done

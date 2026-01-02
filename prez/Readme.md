@@ -1,3 +1,3 @@
 * npm install to install marp dependency
-* npm run export : to export svg diagrams from drawio 
+* ./export-diagrams.sh x.drawio in assets directory: to export svg diagrams from drawio 
 * npm run marp 
