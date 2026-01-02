@@ -1,5 +1,6 @@
 {
   "scripts": {
+    "export": "lectures/1_Foundation/assets/export-diagrams.sh",
     "marp": "marp lectures/1_Foundation/slide1.md -w --html --allow-local-files "
   },
   "devDependencies": {
